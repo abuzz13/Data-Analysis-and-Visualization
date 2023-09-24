@@ -1,0 +1,274 @@
+library(GEOquery)
+library(Biobase)
+library(affy)
+library(rlang)
+library(dplyr)
+
+# Reading in GEO Data 
+gds      <- getGEO("GDS3295")
+exp.data.two <- Table(gds)
+exp.data.two
+
+# Reading in the corresponding GEO annotation file
+ann.file.two  <-  "GPL1261.annot"
+ann.data.two  <- read.delim(ann.file.two, header = T, 
+                            row.names = 1, skip = 27, sep = "\t")
+ann.data.two  <- ann.data.two[1:nrow(exp.data.two), ]
+ann.data.two
+gene.info.two <- data.frame(Description = ann.data.two$Gene.title, 
+                            Symbol = ann.data.two$Gene.symbol)
+row.names(gene.info.two) <- row.names(ann.data.two)
+gene.info.two
+
+# Appending development stage (GV/MII) to corresponding samples
+for (i in 3:10)  { names(exp.data.two)[i] <- paste("GV",  
+                                               names(exp.data.two[i]), 
+                                               sep = "_") }
+for (j in 11:18) { names(exp.data.two)[j] <- paste("MII", 
+                                               names(exp.data.two[j]), 
+                                               sep = "_") }
+
+samp.matrix.two <- data.matrix(exp.data.two[, (3:ncol(exp.data.two))])
+rownames(samp.matrix.two) <- rownames(ann.data.two)
+samp.matrix.two
+
+samp.count.two <- ncol(samp.matrix.two)
+samp.count.two
+profile.count.two <- nrow(samp.matrix.two)
+profile.count.two
+
+# Descriptive Satistics
+data.stdev.two <- apply(samp.matrix.two, 1, sd, na.rm = TRUE)
+data.stdev.two
+data.rowMeans.two <- rowMeans(samp.matrix.two, na.rm = TRUE)
+data.rowMeans.two
+# mean(data.stdev) ; mean(data.rowMeans)
+# IQR(data.stdev) ; IQR(data.rowMeans)
+
+
+# Histograms illistrating initial spread
+hist(
+  data.rowMeans.two, 
+  col  = "Red",
+  xlab = "Mean expression value for GV/MII samples",
+  ylab = "Frequency",
+  main = paste("Histogram of mean expression values for",
+               profile.count.two,"profiles")
+)
+
+hist(
+  data.stdev.two, 
+  col  = "Blue",
+  xlab = "Standard Deviation expression value for GV/MII samples",
+  ylab = "Frequency",
+  main = paste("Histogram of standard deviation expression values for"
+               ,profile.count.two,"profiles")
+)
+
+
+# Correlation Matrix
+cor.matrix.two  <- cor(samp.matrix.two, method = "pearson", 
+                       use = "pairwise.complete.obs")
+
+color <- c("#FF0000","#CC0000","#990000","#660000","#330000",
+           "#000000", "#000000","#0A3300","#146600","#1F9900"
+           ,"#29CC00","#33FF00")
+
+heatmap(
+  cor.matrix.two, 
+  col = color, 
+  scale = "column", 
+  xlab = "Sample Data", 
+  ylab="Sample Data", 
+  main = "Heatmap illistrating expression values of GV/MII samples"
+)
+
+
+# Column Means v. Column Variances 
+col.mean.two <- apply(log2(samp.matrix.two), 2, mean) 
+col.mean.two
+col.var.two  <- apply(log2(samp.matrix.two), 2, var) 
+col.var.two
+cv.two       <- col.var.two / col.mean.two
+cv.two
+
+plot(
+  col.mean.two, 
+  cv.two, 
+  xlab = "log2(ColMean)",
+  ylab = "log2(CV)",
+  main = "Plot of Column Mean v. Column Variance for GV/MII samples",
+  col  = c(rep("Green", samp.count.two/2), 
+           rep("Blue", samp.count.two/2), 
+           rep("Red", samp.count.two/2), 
+           rep("Purple", samp.count.two/2) ),
+  pch  = c(rep(17, samp.count.two/2), 
+           rep(19, samp.count.two/2),
+           rep(21, samp.count.two/2),
+           rep(24, samp.count.two/2))
+)
+legend("topright", c("GV oocyte", "MII oocyte"), 
+       pch = c(17, 19), col = c("Green", "Blue"))
+text(col.mean.two, cv.two, labels = names(col.mean.two), 
+     cex = 0.5, offset = 10)
+
+
+# Row Means v. Column Variances 
+row.mean.two <- apply(log2(samp.matrix.two), 1, mean) 
+row.var.two  <- apply(log2(samp.matrix.two), 1, var)  
+r.cv.two     <- row.var.two / row.mean.two
+
+
+plot(
+  row.mean.two, 
+  r.cv.two, 
+  xlab = "log2(RowMeans)",
+  ylab = "log2(CV)",
+  main = "Plot of Row Mean v. Row Variance for GV/MII samples",
+  col  = c(rep("Green", samp.count.two/2), 
+           rep("Blue", samp.count.two/2)),
+  pch  = c(rep(17, samp.count.two/2), 
+           rep(19, samp.count.two/2))
+)
+legend("topright", c("GV oocyte", "MII oocyte"), pch = c(17, 19), col = c("Green", "Blue"))
+abline(v = 0, col = 2, lwd = 2)
+
+
+
+# Correlation plot of Row Averages
+cor.means.two <- apply(cor.matrix.two, 1, mean)
+
+plot(
+  c(1,length(cor.means.two)), 
+  range(cor.means.two), 
+  type = "n", 
+  xlab = "",
+  ylab = "Average correlation",
+  main = "Avg correlation for GV/MII samples",
+  axes = FALSE
+)
+points(
+  cor.means.two,
+  col = c(rep("Green", samp.count.two/2), 
+          rep("Blue", samp.count.two/2)),
+  pch = c(rep(17, samp.count.two/2), 
+          rep(19, samp.count.two/2))
+)
+axis(1, at=c(1:length(cor.means.two)), 
+     labels = colnames(samp.matrix.two), 
+     las = 2, cex.lab = 0.4, cex.axis = 0.6)
+axis(2)
+grid(nx = 16, col = "grey")
+legend(
+  "topright", 
+  c("GV oocyte", "MII oocyte"), 
+  pch = c(17, 19), col = c("Green", "Blue"), bg = "white"
+)
+
+
+# correlation incoporating the age of the samples
+plot(
+  c(1,length(cor.means.two)), 
+  range(cor.means.two), 
+  type = "n", 
+  xlab = "",
+  ylab = "Average correlation",
+  main = "Avg correlation for GV/MII samples with age",
+  axes = FALSE
+)
+points(
+  cor.means.two,
+  col = c(rep("Green", samp.count.two/4), 
+          rep("Blue", samp.count.two/4), 
+          rep("Red", samp.count.two/4), 
+          rep("Black", samp.count.two/4)),
+  pch = c(rep(16, samp.count.two/4), rep(17, samp.count.two/4), 
+          rep(18, samp.count.two/4), 
+          rep(19, samp.count.two/4))
+)
+axis(1, at=c(1:length(cor.means.two)), 
+     labels = colnames(samp.matrix.two), 
+     las = 2, cex.lab = 0.4, cex.axis = 0.6)
+axis(2)
+grid(nx = 16, col = "grey")
+legend(
+  "bottomleft", 
+  c("GV oocyte - 66 weeks", "GV oocyte - 6 weeks", "MII oocyte - 66 weeks", "MII oocyte - 6 weeks"), 
+  pch = c(16:19), col = c("Green", "Blue", "Red", "Black"), bg = "white"
+)
+
+
+# Identifying Outlier(s) via outlier()
+o.two       <- cor.means.two <=  outlier(cor.means.two)
+outlier.two <- cor.means.two[o]
+cat(sprintf("%s Outlier(s) identified!\n", length(outlier.two)))
+outlier.two
+
+# Remove Outlier(s) -- Not needed given the high correlation value (0.8955532)
+data.no.outliers.two <- samp.matrix.two[, -(grep(names(outlier.two), colnames(samp.matrix.two)))]
+# Note: this can also be accomplished using rm.outlier() 
+# data.no.outliers <- rm.outlier(cor.means, fill = FALSE, median = FALSE, opposite = FALSE)
+
+########################
+#     Filter Genes     #
+########################
+
+quantile(log2(rowMeans(samp.matrix.two)))
+# Output:
+#        0%       25%       50%       75%      100% 
+# -1.590414  3.508984  5.021335  6.880584 13.003654 
+
+#################
+# [ Stage 1/2 ] #
+#################
+
+# Eliminating probes with rowMeans less than 0 on a log2 scale
+samp.matrix.filtered.two <- subset(samp.matrix.two, 
+                                   log2(rowMeans(samp.matrix.two)) > 0)
+removed.two <- nrow(samp.matrix.two) - nrow(samp.matrix.filtered.two)
+cat(sprintf("%s probes removed with rowMeans < 0 on a log2 scale\n", removed.two))
+
+# Use expFilter() to fine filter genes with low expression values 
+# This step is essentially a fail-safe and not necessarily needed
+# A gene is kept if at least 0.01*ncol(samp.matrix) of its values is higher than threshold.
+library(edgeR)
+dat.fil.two <- filterByExpr(log2(samp.matrix.filtered.two), graph = TRUE)
+dat.fil.two <- subset(dat.fil.two, rowMeans(dat.fil.two) > 0)
+num.lowexp.two <- nrow(samp.matrix.filtered.two) - nrow(dat.fil.two)
+cat(sprintf("%s gene(s) identified and removed for low expression\n", num.lowexp.two))
+
+# Row Means v. Column Variances on filtered data
+fil.mean.two <- apply(samp.matrix.filtered.two, 1, mean) 
+fil.var.two  <- apply(samp.matrix.filtered.two, 1, var)  
+f.cv.two     <- fil.var.two / fil.mean.two
+
+# Plotting filtered genes (Stage 1/2)
+png("Scatterplot_RowMeansCV_Filtered_Stage1.png")
+plot(
+  fil.mean.two, 
+  f.cv.two, 
+  xlab = "log2(RowMeans)",
+  ylab = "log2(CV)",
+  main = "Plot of Row Mean v. Row Variance for Filtered GV/MII samples",
+  col  = c(rep("Green", samp.count/2), rep("Blue", samp.count.two/2)),
+  pch  = c(rep(17, samp.count/2), rep(19, samp.count.two/2))
+)
+legend("topright", c("GV oocyte", "MII oocyte"), pch = c(17, 19), col = c("Green", "Blue"))
+abline(v = 3, col = 2, lwd = 2) # Threshold determined for stage 2/2 of the filtering process
+dev.off()
+
+
+#################
+# [ Stage 2/2 ] #
+#################
+
+# Eliminating probes with rowMeans less than 3 on a log2 scale
+dat.filtered.two <- subset(dat.fil, rowMeans(dat.fil) > 3)
+removed.2.two <- nrow(dat.fil) - nrow(dat.filtered)
+cat(sprintf("%s probes removed with rowMeans < 0 on a log2 scale\n", removed.2))
+
+fil.mean.2 <- apply(dat.filtered, 1, mean) 
+fil.var.2  <- apply(dat.filtered, 1, var)  
+fil.cv.2   <- fil.var.2 / fil.mean.2
+
+
