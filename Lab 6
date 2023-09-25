@@ -1,0 +1,188 @@
+dat <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\agingStudy11FCortexAffy.txt", header=T, row.names = 1)
+ann <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\agingStudy1FCortexAffyAnn.txt", header=T, row.names = 1)
+dimnames(dat)
+dim(dat)
+dim(ann)
+dimnames(ann)
+
+# Prepare 2 separate vectors for comparison.  The first is a comparison between male and female patients.  The current data frame can be left alone for this, since the males and females are all grouped together.  The second vector is comparison between patients >= 50 years of age and those < 50 years of age. To do this, you must use the annotation file and logical operators to isolate the correct arrays/samples.
+
+# Assign the original data set w/o manipulation - already in Male v. Female order.
+gender <- dat
+gender
+# Assign the age groups w/ sort.list using column 2, will sort in ascending order.
+age <- ann[sort.list(ann[, 2]), ]
+age
+# Create the sorted data column names
+age.sort <- paste(dimnames(age)[[1]])
+age.sort
+# Assign the newly sorted column names by age to original data set.
+dat.age  <- dat[, age.sort]
+dat.age
+
+# Run the t.test function from the notes using the first gene vector below for the gender comparison.  Then use the second gene vector below for the age comparison.  
+
+# gender comparison gene vector
+g.g <- c(1394,  1474,  1917,  2099,  2367,  2428, 2625,  3168,  3181,  3641,  3832,  4526,
+         4731,  4863,  6062,  6356,  6684,  6787,  6900,  7223,  7244,  7299,  8086,  8652,
+         8959,  9073,  9145,  9389, 10219, 11238, 11669, 11674, 11793)
+
+# age comparison gene vector
+g.a <- c(25, 302,  1847,  2324,  246,  2757, 3222, 3675,  4429,  4430,  4912,  5640, 5835, 5856,  6803,  7229,  7833,  8133, 8579,  8822,  8994, 10101, 11433, 12039, 12353,
+         12404, 12442, 67, 88, 100)
+
+
+t.test.all.genes <- function(x,s1,s2) {
+  x1 <- x[s1]
+  x2 <- x[s2]
+  x1 <- as.numeric(x1)
+  x2 <- as.numeric(x2)
+  t.out <- t.test(x1,x2, alternative="two.sided",var.equal=T)
+  out <- as.numeric(t.out$p.value)
+  return(out)
+}
+
+# Assign the gender vector to the t.test function. Gender data set and the subest of gender comparison. Assign s1 to column 1 and M, assign s2 to column 1 and to F
+rawp.gender <- apply(gender[g.g, ], 1, t.test.all.genes, s1= ann=="M",s2= ann=="F")
+rawp.gender
+rawp.age <- apply(dat.age[g.a, ], 1, t.test.all.genes, s1= age[,2] <50 , s2= age[,2] >50)
+
+
+# Using these p-values, use either p.adjust in the base library or mt.rawp2adjp in the multtest library to adjust the values for multiple corrections with the Holm's method.
+
+# apply multiple test correction using non-permuted methods
+library(base)
+p.g <- c(rawp.gender)
+p.gender <- p.adjust(p.g,method="holm")
+p.gender
+
+p.a <- c(rawp.age)
+p.age <- p.adjust(p.a,method="holm")
+p.age
+
+# Sort the adjusted p-values and non-adjusted p-values and plot them vs. the x-axis of numbers for each comparison data set.  Make sure that the two lines are different colors.  Also make sure that the p-values are sorted before plotting.
+
+# Gender
+par(mfrow=c(2,1))
+rawp.gender.sort <- sort(rawp.gender)
+p.gender.sort <- sort(p.gender)
+gender1 <- as.matrix(rawp.gender.sort)
+gender2 <- as.matrix(p.gender.sort)
+a.gender <- cbind(gender1, gender2)
+colnames(a.gender) <- c("Non-adjusted p-values", "Adjusted p-values")
+matplot(a.gender, type = "b", pch = 2, col = 2:3, main = "Sorted Gender: Adjusted vs Non-Adjusted p-values", ylab = "p-values")
+legend("topleft", legend = colnames(a.gender), pch = 2, col = 2:3)
+
+# Age
+rawp.age.sort <- sort(rawp.age)
+p.age.sort <- sort(p.age)
+age1 <- as.matrix(rawp.age.sort)
+age2 <- as.matrix(p.age.sort)
+a.age <- cbind(age1, age2)
+colnames(a.age) <- c("Non-adjusted p-values", "Adjusted p-values")
+matplot(a.age, type = "b", pch = 2, col = 6:4, main = "Sorted Age: Adjusted vs Non-Adjusted p-values", ylab = "p-values")
+legend("topleft", legend = colnames(a.gender), pch = 2, col = 6:4)
+ 
+
+
+# Repeat #4 and #5 with the Bonferroni method.
+p.g <- c(rawp.gender)
+b.gender <- p.adjust(p.g,method="bonferroni")
+b.gender
+
+p.a <- c(rawp.age)
+b.age <- p.adjust(p.a,method="bonferroni")
+b.age
+
+
+# Gender
+par(mfrow=c(2,1))
+rawp.gender.sort <- sort(rawp.gender)
+b.gender.sort <- sort(b.gender)
+gender1 <- as.matrix(rawp.gender.sort)
+gender2 <- as.matrix(b.gender.sort)
+a.gender <- cbind(gender1, gender2)
+colnames(a.gender) <- c("Non-adjusted p-values", "Adjusted p-values")
+matplot(a.gender, type = "b", pch = 2, col = 7:2, main = "Sorted Gender: Adjusted vs Non-Adjusted p-values", ylab = "p-values")
+legend("topleft", legend = colnames(a.gender), pch = 2, col = 7:2)
+
+# Age
+rawp.age.sort <- sort(rawp.age)
+b.age.sort <- sort(b.gender)
+age1 <- as.matrix(rawp.age.sort)
+age2 <- as.matrix(b.age.sort)
+a.age <- cbind(age1, age2)
+colnames(a.age) <- c("Non-adjusted p-values", "Adjusted p-values")
+matplot(a.age, type = "b", pch = 2, col = 8:5, main = "Sorted Age: Adjusted vs Non-Adjusted p-values", ylab = "p-values")
+legend("topleft", legend = colnames(a.gender), pch = 2, col = 8:5)
+
+
+
+# Read in the log2 normalized fragments per kb per million mapped reads (FPKM) data matrix and annotation files
+FPKM <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\tcga_brca_fpkm.txt", header=T, row.names = 1)
+f.ann <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\tcga_brca_fpkm_sam.txt", sep="\t")
+f.ann
+FPKM
+
+# Use grep to subset the data matrix only by gene 'GATA3' and make sure to cast this vector to numeric.
+# as.numeric to cast the vector to numeric
+# grep() command will return all lines from the input file that yield a match for the regular expression
+# we want the row names in data
+# as.numeric(FPKM[grep('pattern we are looking for', rownames(data)'specify rows'), ]) 
+# the second comma specifies we are looking at the rows of data
+
+g.FPKM <- as.numeric(FPKM[grep('GATA3', rownames(FPKM)), ])
+g.FPKM
+
+# Create a binary (1/0) vector for the patients where the upper 25% expression of GATA3 is coded as 1 and all other patients are coded as 0. Call this new variable 'group'.
+
+group <- +(g.FPKM >= quantile(g.FPKM, 0.75))
+
+# Create a data matrix with the 'group' variable you created in #9 and the remaining variables in the annotation file.
+
+group.df<- data.frame(V1 = g.FPKM, group)
+group.df
+
+# Run a Kaplan-Meier (KM) analysis to determine if a difference in survival experience exists between the two GATA3 expression groups using the survdiff function. Extract the p-value from the chi squared test output.
+library(survival)
+library(splines)
+library(dplyr)
+
+sdf <- survdiff(Surv(time, status)~ group, data = group.df)
+sdf
+p.value.km <- signif(pchisq(sdf$chisq, length(sdf$n) - 1, lower.tail = FALSE), 4)
+p.value.km
+
+# Now run a Cox proportion hazard (PH) regression model on just the grouping variable (i.e. no other covariates) and extract both the p-value and hazard ratio from the output.
+
+
+cox.ph <- coxph(Surv(time, status)~ group, data = group.df)
+summary(cox.ph)
+
+p.value.cox <- signif(summary(cox.ph)$coefficients[, "Pr(>|z|)"], 4)
+p.value.cox
+HR.cox <- signif(summary(cox.ph)$coefficients[, "exp(coef)"], 2)
+HR.cox
+
+
+# Run the survfit() function only on the grouping variable (i.e. no other covariates) and plot the KM curves, being sure to label the two groups with a legend, two different colors for each line, and provide the KM p-value, Cox PH p-value, Cox PH hazard ratio, and sample sizes all in each of the two groups all on the plot.
+
+
+sfit <- survfit(surv ~ group, data = group.df)
+sfit
+
+
+plot(sfit,  main = "Kaplan-Meier Curves for TCGA GATA3 Study", lty = 2:2, xlab="Months",ylab="S(t)", col=c("purple", "orange"), lwd=2)
+
+n.low.sfit <- sfit$n[1]
+n.low.sfit
+n.high.sfit <- sfit$n[2]
+n.high.sfit
+
+legend("topright", c(paste("Lower 75% GATA3 n=", n.low.sfit), paste("Upper 25% GATA3 n=", n.high.sfit)), lty = 2:2, col=c("purple", "orange"), lwd=2, y.intersp=2)
+
+text(x=30, y=0.8, labels=paste("KM p-value: ", p.value.km, "Cox PH p-value: ", 
+                               p.value.cox, "Cox PH hazard ratio: ", 
+                               HR.cox), pos=4, col = "darkgreen")
+
+
