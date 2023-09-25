@@ -1,0 +1,121 @@
+dat <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\Sotiriou.txt", header=T, row.names = 1)
+ann <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\Sotiriou_annotations.txt", header=T, row.names = 1)
+library(multtest)
+
+# Calculate and plot a PCA plot.  Label the points based on the site ("site" column header in annotation file).  Make sure to add a legend to denote the colors of the two sites.
+head(ann[, "site"]) 
+# PCA plot #1 with Golub data
+dat.pca <- prcomp(t(dat), cor=F)
+dat.loadings <- dat.pca$x[,1:2]
+dev.off
+plot(range(dat.loadings[,1]),range(dat.loadings[,2]),type="n", xlab = "KIU", ylab = "OXF", main = "PCA plot of Sotiriou Data\nKIU Vs. OXF")
+points(dat.loadings[,1][ann$site=="KIU"], dat.loadings[,2][ann$site=="KIU"],col=1,bg='pink',pch=21,cex=1.5)
+points(dat.loadings[,1][ann$site=="OXF"], dat.loadings[,2][ann$site=="OXF"],col=1,bg='purple',pch=21,cex=1.5)
+legend("bottomright", c("KIU","OXF"), col = c("pink","purple"), fill = c("pink", "purple"))
+
+
+
+# Scree plot of Golub data
+dat.pca.var <- round(dat.pca$sdev^2 / sum(dat.pca$sdev^2)*100,2)
+plot(c(1:length(dat.pca.var)),dat.pca.var,type="b",xlab="# components",ylab="% variance",pch=21,col=1,bg=3,cex=1.5)
+title("Scree plot showing % variability explained by each eigenvalue\nKIU Vs. OXF dataset")
+
+
+
+
+# Kruskal's non-metric MDS on samples
+library(MASS)
+library(multtest)
+
+dat.dist <- dist(t(dat))
+dat.mds <- isoMDS(dat.dist)
+plot(dat.mds$points, type = "n")
+points(dat.mds$points[,1][ann$site=="KUI"], dat.mds$points[,2][ann$site=="KUI"],
+       col='red',pch=16,cex=1.5)
+points(dat.mds$points[,1][ann$site=="OXF"], dat.mds$points[,2][ann$site=="OXF"],
+       col='blue',pch=16,cex=1.5)
+title(main="MDS plot of Sotiriou data-stress=20%")
+legend(30,15,c("KUI","OXF"),col=c('red','blue'),pch=15,cex=.7,horiz=F)
+
+
+# classical metric MDS on samples (no stress value provided)
+dat.loc <- cmdscale(dat.dist)
+plot(dat.loc, type = "n")
+points(dat.loc[,1][ann$site=="KUI"], dat.loc[,2][ann$site=="KUI"],col='red',
+       pch=16,cex=1.5)
+points(dat.loc[,1][ann$site=="OXF"], dat.loc[,2][ann$site=="OXF"],col='blue',
+       pch=16,cex=1.5)
+title(main= "MDS plot of Sotiriou data")
+legend(15,20,c("KUI","OXF"),col=c('red','blue'),pch=15,cex=.7,horiz=F)
+
+# Now, first center and scale the rows of the matrix with the commands below (assuming that dd is your data matrix):
+# > temp <- t(dd)
+# > temp <- scale(temp,center=T,scale=T) 
+
+# Then calculate and plot a two-dimensional embedding of the weighted graph Laplacian using t(temp) as the 'X' argument and 'NULL' for the qnt argument (don't use quotations to run the function).  Label the points based on the site.  Also add a legend.  
+
+temp <- t(dat)
+temp <- scale(temp,center=T,scale=T) 
+temp
+
+foo <- as.numeric(ann$site) 
+
+# The weighted graph Laplacian
+
+k.speClust2 <- function (temp, qnt=NULL) {
+  dist2full <- function(dis) {
+    n <- attr(dis, "Size")
+    full <- matrix(0, n, n)
+    full[lower.tri(full)] <- dis
+    full + t(full)
+  }
+  dat.dis <- dist(t(temp),"euc")^2
+  if(!is.null(qnt)) {eps <- as.numeric(quantile(dat.dis,qnt))}
+  if(is.null(qnt)) {eps <- min(dat.dis[dat.dis!=0])}
+  kernal <- exp(-1 * dat.dis/(eps))
+  K1 <- dist2full(kernal)
+  diag(K1) <- 0
+  D = matrix(0,ncol=ncol(K1),nrow=ncol(K1))
+  tmpe <- apply(K1,1,sum)
+  tmpe[tmpe>0] <- 1/sqrt(tmpe[tmpe>0])
+  tmpe[tmpe<0] <- 0
+  diag(D) <- tmpe
+  L <- D%*% K1 %*% D
+  X <- svd(L)$u
+  Y <- temp / sqrt(apply(temp^2,1,sum))
+}
+phi <- k.speClust2(dat,qnt=0.005)
+plot(range(phi[,1]),range(phi[,2]),xlab="phi1",ylab="phi2",main="Weighted Graph Laplacian plot of Golub Data\nepsilon=0.005")
+points(phi[,1][ann$site=="KUI"],phi[,2][ann$site=="KUI"],col="red",pch=16,cex=1.5)
+points(phi[,1][ann$site=="OXF"],phi[,2][ann$site=="OXF"],col="blue",pch=16,cex=1.5)
+legend(15,20,c("KUI","OXF"),col=c('red','blue'),pch=15,cex=.7,horiz=F)
+
+
+
+
+
+dat.dist <- dist(t(dat))
+dat.loc  <- cmdscale(dat.dist)
+plot(range(phi[, 1]), range(phi[, 2]), xlab = "Phi 1", ylab = "Phi 2", 
+  main="Weighted Graph Laplacian Plot of Sotiriou Data")
+points(phi[, 1][ann$site == "KIU"], phi[, 2][ann$site == "KIU"], col = "Red", 
+       pch = 16, cex = 1.5)
+points(phi[, 1][ann$site == "OXF"], phi[, 2][ann$site == "OXF"], col = "Blue", 
+       pch = 16, cex = 1.5)
+legend("bottomright", c("KIU", "OXF"), col = c("Red", "Blue"), 
+       fill = c("Red", "Blue"))
+
+# Kruskal's Non-metric MDS Plot
+library(MASS)
+library(multtest)
+dat.mds <- isoMDS(dat.dist)
+plot(dat.mds$points, type = "n")
+points(dat.mds$points[, 1][ann$site == "KIU"], dat.mds$points[, 2]
+       [ann$site == "KIU"], col = "Red", pch=16, cex=1.5)
+points(dat.mds$points[, 1][ann$site == "OXF"], dat.mds$points[, 2]
+       [ann$site == "OXF"], col = "Blue", pch=16, cex=1.5)
+title(main="MDS plot of Sotiriou data-stress=20%")
+legend("bottomright", c("KIU", "OXF"), col = c("Red", "Blue"), 
+       fill = c("Red", "Blue"))
+
+
