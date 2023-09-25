@@ -1,0 +1,126 @@
+dat <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\rat_KD.txt", header=T, row.names = 1)
+dim(dat)
+dimnames(dat)
+
+
+# log2 the data
+dat.log <- log2(dat)
+
+# create the title axis as a character and subset, 
+#because we want to look at the IDs and need them as characters
+cl     <- as.character(names(dat.log))
+kd.log <- dat.log[ ,cl]
+
+# two classes of rat_KD
+cd <- cl[1:6]
+kd <- cl[7:11]
+
+
+# calculate means of each class for each gene
+cd.m <- apply(kd.log[,cd],1,mean,na.rm=T)
+kd.m <- apply(kd.log[,kd],1,mean,na.rm=T)
+cd.m
+kd.m
+
+# get fold changes (data represented as log2 ratios already)
+fold <- cd.m-kd.m
+fold
+
+# the Student's t-test function in the notes to calculate the changing genes between the control diet and ketogenic diet classes.
+t.test.all.genes <- function(x,s1,s2) {
+  x1 <- x[s1]
+  x2 <- x[s2]
+  x1 <- as.numeric(x1)
+  x2 <- as.numeric(x2)
+  t.out <- t.test(x1,x2, alternative="two.sided",var.equal=T)
+  out <- as.numeric(t.out$p.value)
+  return(out)
+}
+
+pv <- apply(kd.log, 1, t.test.all.genes, s1=cd, s2=kd)
+pv
+
+# look at distribution of p-values
+par(mfrow=c(1,2))
+hist(pv,col="lightblue",xlab="p-values",main="P-value dist'n between\nGC and ACT groups",cex.main=0.9)
+abline(v=.05,col=2,lwd=2)
+hist(-log10(pv),col="lightblue",xlab="log10(p-values)", main="-log10(pv) dist'n between\nGC and ACT groups",cex.main=0.9)
+abline(v= -log10(.05),col=2,lwd=2)
+
+# report how many probesets have a p<.05 and p<.01. Then divide an alpha of 0.05 by 
+# the total number of probesets and report how many probesets have a p-value less than this value
+length(pv[pv < .05])
+
+length(pv [pv < .01])
+
+# Bonferroni Mehtod calcualtion
+x <- .05/length(pv)
+x
+
+# how many have less than the calculated Bonferroni method calculated above? 
+length(pv[pv < x])
+
+# What is the maximum and minimum fold change value, please report on the linear scale
+2^max(fold)
+
+2^min(fold)
+
+# We want to find the gene probesets that are less than the bonferroni we claculated
+bonferroni <- 2^fold
+names(pv[pv < x & abs(bonferroni) > 2])
+
+
+# transpose p-values
+p.trans <- -1 * log10(pv)
+p.trans
+
+# volcano plot #1
+par(mfrow=c(1,1))
+plot(range(p.trans),range(fold),type='n',xlab='-1*log10(p-value)',ylab='fold change',main='Volcano Plot\nGC and ACT group differences')
+points(p.trans,fold,col='black',pch=21,bg=1)
+points(p.trans[(p.trans> -log10(.05)&fold>log2(2))],fold[(p.trans> -log10(.05)&fold>log2(2))],col=1,bg=2,pch=21)
+points(p.trans[(p.trans> -log10(.05)&fold< -log2(2))],fold[(p.trans> -log10(.05)&fold< -log2(2))],col=1,bg=3,pch=21)
+abline(v= -log10(.25))
+abline(h= -log2(4))
+abline(h=log2(4))
+
+
+
+# Other example in the PowerPoint Lecture
+
+# function for one factor ANOVA model with fibroEset data set (run one model for each gene)
+library(fibroEset); data(fibroEset);
+dat <- exprs(fibroEset);
+ava <- function(x) {
+  d <- data.frame(x,fibroEset$species)
+  a <- anova(lm(x~fibroEset.species,d))
+  return(as.numeric(a[1,5]))
+}
+one.fac.anova <- apply(dat,1,ava)
+
+# plot an example of a gene with p-value < 1e-20
+g <- data.frame(fibroEset$species,t(dat[as.logical(one.fac.anova<1e-20),]))
+plot(X32594_at~fibroEset.species,g,ylab='expression',xlab='species',main='Boxplot of a single gene with group means that differ\n between all three groups (p<1e-20)',cex.main=0.9,col='orange')
+anova(lm(X32594_at~fibroEset.species,g))
+
+# second volcano plot
+library(Biobase); library(annotate); library(golubEsets); data(geneData); dat <- geneData;
+
+# floor data to 10
+dat[dat<10] <- 10
+fold <- apply(log(dat[,c(1:5)]),1,mean) - apply(log(dat[,c(14:18)]),1,mean)
+t.test.run <- apply(dat,1,t.test.all.genes,s1=c(1:5),s2=c(14:18))
+t.test.run[is.na(t.test.run)]<-1
+
+# transpose p-values
+p.trans <- -1 * log(t.test.run)
+
+
+
+
+
+
+
+
+
+
