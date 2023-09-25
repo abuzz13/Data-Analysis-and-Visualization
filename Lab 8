@@ -1,0 +1,72 @@
+library(fibroEset)
+
+# 1.)	Load the fibroEset library and data set.  Obtain the classifications for the samples.
+
+data("fibroEset")
+dat.fibro <- exprs(fibroEset)
+colnames(dat.fibro) <- as.character(fibroEset$species)
+dat.fibro
+dim(dat.fibro)
+
+# Select a random set of 50 genes from the data frame, and subset the data frame
+library(dplyr)
+# random sample of 50 genes
+rand.genes <- sample(dimnames(dat.fibro)[[1]],50,replace=F)
+
+# Subset
+fibroEset.df <- exprs(fibroEset)[rand.genes, ]
+
+# name columns
+library(plyr)
+cls <- fibroEset$species
+col.names <- mapvalues(cls, from=c("b", "g", "h"), to=c("bonobo", "gorilla", "human"))
+colnames(fibroEset.df) <- col.names
+fibroEset.df
+
+# 3.)	Run and plot hierarchical clustering of the samples using manhattan distance metric and median linkage method.  Make sure that the sample classification labels are along the x-axis.  Title the plot.
+library(dendextend)
+
+distance_mat <- dist(fibroEset.df, method = 'manhattan')
+Hierar_cl <- hclust(distance_mat, method = "median")
+Hierar_cl
+plot(Hierar_cl, cex = 0.9, 
+     main = " hierarchical clustering of 50 random genes", 
+     xlab = "genes", ylab = "distance", col = 2:3, hang = 0.25)
+
+
+
+# 4.)	Now both run hierarchical clustering and plot the results in two dimensions (on samples and genes).  Plot a heatmap with the genes on the y-axis and samples on the x-axis.  Once again, make sure that the sample and genes labels are present.  Title the plot.
+
+library(RColorBrewer)
+pal <- RColorBrewer::brewer.pal(12, name = "Set3")
+heatmap(as.matrix(fibroEset.df), col = pal, ylab = "Genes",
+        xlab = "Donors", main = "Heatmap Plot of 50 Random Genes")
+
+# 5.)	Calculate PCA on the samples and retain the first two components' vectors (eigenfunctions).  Calculate k-means clustering on these first two components with k=3.
+
+library(kernlab)
+# calculate PCA for first 2 PCs
+dat.kpca <- kpca(t(fibroEset.df),kernel="rbfdot",
+                 kpar=list(sigma=0.002),features=2)
+dat.kpca
+# pcv found in dat.kpca
+pcv <- pcv(dat.kpca)
+# rotated found in dat.kpca
+rot <- rotated(dat.kpca)
+# get the k means for both
+pcv.k <- kmeans(pcv, centers = 3)
+rot.k <- kmeans(rot, centers = 3)
+pcv.k
+rot.k
+
+# 6.)	Plot a two-dimensional scatter plot of the sample classification labels, embedded with the first two eigenfunctions (from PCA).  Color the labels with the color that corresponds to the predicted cluster membership.  Make sure to label the axes and title the plot.
+
+plot(pcv, col=pcv.k$cluster, xlab="p1", ylab="p2",
+     pch='*',cex=2,main="Kernel PCA of FibroEset data w/ PCV k=3")
+points(pcv.k$cluster, col=4:5, pch='*', cex=2)
+
+plot(rot, col=rot.k$cluster, xlab="p1", ylab="p2",
+     pch='*',cex=2,main="Kernel PCA of FibroEset data w/ 
+     Rotated Vectors k=3")
+points(rot.k$cluster, col=8:3, pch='*', cex=2)
+
