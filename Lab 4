@@ -1,0 +1,205 @@
+library(marray)
+
+# Load the swirl data set 'R Object'
+data(swirl)
+swirl
+
+# look at image file from swirl data
+maImage(swirl)
+
+# look at boxplot from swirl data by print-tip
+maBoxplot(swirl[,3]) 
+maBoxplot(swirl[,1])
+maBoxplot(swirl[,2])
+maBoxplot(swirl[,4])
+
+# Pre-normalization MvA-plot for the Swirl 93 array, with the lowess fits for 
+# individual print-tip-groups. 
+# - Default arguments
+maPlot(swirl[,3],main='pre-normalization', lines.func = 'solid')
+
+# Post-normalization using print-tip loess
+mnorm<-maNorm(swirl[,3], norm="p",span=0.45, echo = TRUE)
+maPlot(mnorm,main='post-normalization')
+
+# Plot an MvA plot of the normalized array without the stratified lines or legend
+mnorm<-maNorm(swirl[,3], norm="p", span=0.45)
+maPlot(mnorm,main='post-normalization', lines.func = 'solid',
+       legend.func = NULL)
+
+# Global Intensities
+mnorm<-maNorm(swirl[,3], norm="median", span=0.45)
+maPlot(mnorm,main='post-normalization', lines.func = 'solid',
+       legend.func = NULL)
+
+mnorm<-maNorm(swirl[,3], norm="median",span=0.45, echo = TRUE)
+maPlot(mnorm,main='post-normalization')
+
+# Loess fit using all spots
+maPlot(swirl, z=NULL, legend.func=maLegendLines(legend="All spots",col="green"), 
+       lines.func=maLoessLines(loess.args=list(span=0.3),col="green"))
+
+
+# Pre-normalization MA-plot for the Swirl 81 array, with the lowess fits for 
+# individual grid columns and 1% tails of M highlighted
+defs <- maDefaultPar(swirl[, 1], x = "maA", y = "maM", z = "maGridCol")
+legend.func <- do.call("maLegendLines", defs$def.legend)
+lines.func <- do.call("maLowessLines", c(list(TRUE, f = 0.3), defs$def.lines))
+text.func<-maText(subset=maTop(maM(swirl)[,1],h=0.01,l=0.01), labels="o", col="violet")
+maPlot(swirl[, 1], x = "maA", y = "maM", z = "maGridCol", lines.func=lines.func, 
+       text.func = text.func, legend.func=legend.func, main = "Swirl array 81: pre-normalization MA-plot")
+
+
+# scatter plot
+cars.lm <- lm(dist~speed,data=cars)
+plot(cars$speed,cars$dist,xlab="speed",ylab="dist",main="regression(cars)")
+abline(as.numeric(cars.lm$coefficients[1]),as.numeric(cars.lm$coefficients[2]),
+       col='red',lwd=2)
+
+
+# lowess smoothing plot
+data(cars)
+plot(cars, main = "lowess(cars)")
+lines(lowess(cars), col = 2,lwd=2)
+lines(lowess(cars, f=.2), col = 3,lwd=2)
+legend(5, 120, c(paste("f = ", c("2/3", ".2"))), lty = 1, col = 2:3)
+
+
+# Read in the GenePix data
+dir.path <- "C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\GenePix_files"
+a.cdna <- read.GenePix(path = dir.path, name.Gf = "F532 Median", name.Gb = "B532 Median", name.Rf = "F635 Median", name.Rb = "B635 Median", name.W = "Flags")
+
+a.cdna[,1]
+a.cdna[,2]
+
+# a.cdna pre-normalization patient 1
+par(mfrow=c(3,1)) 
+maPlot(a.cdna[,1],main='pre-normalization Patient 1', lines.func = NULL, legend.func = NULL) 
+
+# Post-normalization using print-tip loess patient 1
+mnorm1<-maNorm(a.cdna[,1], norm="p", span=0.45)
+maPlot(mnorm,main='Print-tip Loess post-normalization Patient 1', legend.func = NULL)
+
+# Post-normalization scale print-tip MAD patient 1
+acdna.normg1 <- maNormScale(a.cdna[,1], norm="g")
+maPlot(acdna.normg1,main='Print-tip MAD post-normalization Patient 1', legend.func = NULL)
+
+
+# a.cdna pre-normalization patient 2
+par(mfrow=c(3,1)) 
+maPlot(a.cdna[,2],main='pre-normalization Patient 2', lines.func = NULL, legend.func = NULL) 
+
+# Post-normalization using print-tip loess patient 2
+mnorm2<-maNorm(a.cdna[,2], norm="p", span=0.45)
+maPlot(mnorm,main='Print-tip Loess post-normalization Patient 2', legend.func = NULL)
+
+# Post-normalization scale print-tip MAD patient 2
+acdna.normg2 <- maNormScale(a.cdna[,2], norm="g")
+maPlot(acdna.normg2,main='Print-tip MAD post-normalization Patient 2', legend.func = NULL)
+
+
+library(marray)
+
+# Using the functions maM(), maGnames(), and maLabels(), figure out how to create the data matrix, get the probe IDs, and assign the probe IDs to the row names. Do this for the 2 normalized metadata objects that you created in #9 above 
+par(mfrow=c(1,2)) 
+p1.Ml <- mnorm1@maM
+p1.Gl <- mnorm1@maGnames
+p1.Ll <- mnorm1@maGnames@maLabels
+p1.Ms <- acdna.normg1@maM
+p1.Gs <- acdna.normg1@maGnames
+p1.Ls <- acdna.normg1@maGnames@maLabels
+
+df1 <- matrix(data = c(p1.Ml,p1.Ms), ncol = 2)
+colnames(df1) <- c("Patient1_L","Patient1_S")
+rownames(df1) <- c(p1.Ll)
+plot(df1)
+
+
+p2.Ml <- mnorm2@maM
+p2.Gl <- mnorm2@maGnames
+p2.Ll <- mnorm2@maGnames@maLabels
+p2.Ms <- acdna.normg2@maM
+p2.Gs <- acdna.normg2@maGnames
+p2.Ls <- acdna.normg2@maGnames@maLabels
+
+df2 <- matrix(data = c(p2.Ml,p2.Ms), ncol = 2)
+colnames(df2) <- c("Patient2_L","Patient2_S")
+rownames(df2) <- c(p2.Ll)
+plot(df2)
+
+
+# load the following libraries affy, limma, affydata, affyPLM, and fpc.
+library(fpc)
+library(limma)
+library(affy)
+library(affydata)
+library(affyPLM)
+
+# Read in the .CEL files
+
+dir.path <- "C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\HGU133plus_files"
+
+fns <- sort(list.celfiles(path=dir.path,full.names=TRUE))
+data.affy <- ReadAffy(filenames=fns,phenoData=NULL)
+head(intensity(data.affy))
+summary(data.affy)
+
+
+ # Array probe Intensity Image
+par(mfrow=c(3,1))
+image(data.affy, transfo=log)
+
+# M-A Plot
+MAplot(data.affy, pairs=T, plot.method="smoothScatter", cex=0.9, cex.main=0.8, cex.lab=0.8, pch=20)
+
+# get data
+data(data.affy@annotation)
+
+# plot data both before and after loess normalization using PM data
+x <- pm(Dilution)
+mva.pairs(x)
+x <- normalize.loess(x,subset=1:nrow(x))
+mva.pairs(x)
+
+
+# affy normalization parameters for expresso function
+data.bg <- bg.correct(data.affy, method ="rma")
+data.qtl <- normalize(data.bg, method="quantiles")
+data.scl <- normalize(data.bg, method="")
+
+normalize.AffyBatch.methods()
+
+pmcorrect.methods()
+
+express.summary.stat.methods()
+
+
+
+
+# Using the function: expresso in addition to exprs(), create the normalized data matrices with 54,675 rows and 3 columns for the 2 different normalization algorithms.
+
+eset <- expresso(data.affy@nrow, data.affy@ncol,bgcorrect.method="rma",
+                 normalize.method="quantiles",
+                 pmcorrect.method="pmonly",
+                 summary.method="medianpolish")
+eset <- threestep(data.affy, background = F, normalize = F, summary.method = "median.polish")
+
+
+# look at data frame of RMA values
+exprs(eset)[1:4,]
+
+
+
+
+# Correlation
+cor(c(matrix1), c(matrix2))
+
+
+
+
+
+
+
+
+
+
