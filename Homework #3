@@ -1,0 +1,166 @@
+# Load the golub data training set in the multtest library.  Also load Biobase and annotate libraries, if they are not loaded with the multtest library.  Remember that the golub data training set is in the multtest library, so see the help file for information on this data set
+
+library(multtest)
+library(Biobase)
+library(annotate)
+
+data("golub")
+
+dim(golub)
+
+# Cast the matrix to a data frame and label the gene names as numbers (e.g. "g1","g2",etc).
+
+dat.gl.df <- data.frame(golub)
+
+# Name the rows (genes)
+rownames(dat.gl.df) <- paste0("g", c(1:nrow(golub)))
+dat.gl.df
+
+
+# Get the sample labels (see lecture notes) and set the sample labels to the data frame.
+
+ann.dat2 <- golub.cl	# class labels ALL=0; AML=1
+# Set the col names
+colnames(dat.gl.df) <- ann.dat2
+
+pairs(t(dat[1:6,]), pch=21,bg = c("red", "blue")[as.factor(ann.dat2)],
+      main="Golub data-first 6 genes")
+
+dat.gl.df
+
+# .) Use the t-test function in the lecture #7 notes and modify it to "wilcox.test" instead of "t.test".  Change the "$p.value" argument to "$statistic".  Assign the following arguments to the function: (2.5 pts)
+# exact=F
+# alternative="two.sided"
+# correct=T
+# Run the function on all of the genes in the dataset and save it as "original.wmw.run"
+
+
+wilcox.all.genes <- function(x,s1,s2) {
+  x1 <- x[s1]
+  x2 <- x[s2]
+  x1 <- as.numeric(x1)
+  x2 <- as.numeric(x2)
+  w.out <- wilcox.test(x1,x2, alternative="two.sided",exact = F, 
+                       correct = T)
+  out <- as.numeric(w.out$p.value)
+  return(out)
+}
+
+original.wmw.run <- apply(dat.gl.df, 1, wilcox.all.genes,
+                          s1= colnames(dat.gl.df)=="0",
+                          s2= colnames(dat.gl.df)=="1")
+original.wmw.run
+
+# Now write a for loop to iterate 500 times, where in each iteration, the columns of the data frame are shuffled (class labels mixed up), the WMW test is calculated on all of the genes, and the maximum test statistic (W) is saved in a list.
+
+#Hints: 
+# Use sample() to sample the number of columns
+# Get the maximum test statistic across all genes with max()
+
+iterate <- function(x){
+  # make a list with 500 iteration number
+  list <- list(1:500)
+  # for loop
+  for (i in 1:500) {
+    colnames(x) <- sample(colnames(x))   # use sample() to iterate over                                             500 columns
+    wmw.test <- apply(dat.gl.df, 1, wilcox.all.genes,
+                      s1= colnames(dat.gl.df)=="0",
+                      s2= colnames(dat.gl.df)=="1")  #calculate mwm test
+    list[i] <- max(wmw.test)      # max test stat saved in a list
+  }
+  result <- list
+  return(result)
+}
+
+
+# Once you have the list of maximum test statistics, get the 95% value test statistic. Subset the original.wmw.run list of values with only those that have a higher test statistic than the 95% value that you calculated.  Print the gene names and test statistics out. 
+
+# Sort the max iterated shuffled data, multiply length by .95 to get calculated value
+over <- sort(max)[0.95 * 500]
+over
+# subset the data to only return genes w/ more than 95% value
+subset.value <- original.wmw.run[original.wmw.run > over]
+subset.value
+
+# Now we want to compare these results to those using the empirical Bayes method in the limma package.  Load this library and calculate p-values for the same dataset using the eBayes() function
+# https://stackoverflow.com/questions/16027745/how-to-use-limma-ebayes-for-small-samples-r-programming
+
+
+library(limma)
+
+zero <- dat.gl.df[colnames(dat.gl.df) == 0]
+one <- dat.gl.df[colnames(dat.gl.df) == 1]
+new.table <- cbind(Grp1=1,Grp2vs1=c(rep(0, length(zero)), 
+                                    rep(1, length(one))))
+gl.lmfit <- lmFit(dat.gl.df, new.table)
+gl.eb <- eBayes(gl.lmfit)
+attributes(gl.eb)
+pval <- gl.eb$p.value[,2]
+pval
+
+
+# Sort the empirical Bayes p-values and acquire the lowest n p-values, where n is defined as the number of significant test statistics that you found in problem 6.  Intersect the gene names for your two methods and report how many are in common between the two differential expression methods, when choosing the top n genes from each set. 
+
+# first get the length of the subset value
+n <- length(subset.value)
+n
+# sort the pval values
+sort <- sort(pval)
+sort
+# sort the subset values using the sorted p-values
+sort <- sort[1:n]
+sort
+# intersect the gene names for subset data and sorted data 
+intersect.names <- intersect(names(sort), names(subset.value))
+# length function to tell you how many there are 
+length(intersect.names)
+intersect.names
+
+
+# Finally, compare the results from a Student's t-test with the empirical Bayes method.  To do this, first calculate a two sample (two-tailed) Student's t-test on all genes.  Make sure that you are running a Student's t-test and not a Welch's t-test.  Then extract only those genes with a p-value less than 0.01 from this test.  Plot the gene p-values<0.01 for the Student's t-test vs. the same genes in the empirical Bayes method.  Make sure to label the axes and title appropriately. 
+
+# students t-test
+
+t.test.all.genes <- function(x,s1,s2) {
+  x1 <- x[s1]
+  x2 <- x[s2]
+  x1 <- as.numeric(x1)
+  x2 <- as.numeric(x2)
+  t.out <- t.test(x1,x2, alternative="two.sided",var.equal=T)
+  out <- as.numeric(t.out$p.value)
+  return(out)
+}
+
+t.test.run <- apply(dat.gl.df, 1, wilcox.all.genes, 
+                          s1= colnames(dat.gl.df)=="0", 
+                          s2= colnames(dat.gl.df)=="1")
+t.test.run
+# extract the pvalues that are less than 0.01
+value <- t.test.run[t.test.run < 0.01]
+value <- as.matrix(value)
+value
+# plot t.test.run vs pval
+
+bayes <- as.matrix(gl.eb$p.value)
+bayes <- bayes[ , -2]
+bayes <- as.matrix(bayes)
+bayes
+
+merge <- merge(value, bayes, by = "row.names", all = FALSE)
+merge <- as.matrix(merge)
+rownames(merge) <- merge[,1]
+merge <- merge[,-1]
+colnames(merge) <- c("Student T Test", "Empirical Bayes")
+class(merge) <- "numeric"
+
+
+plot(c(1, nrow(merge)), range(merge), type = "n", ylab = "P-Value",
+     xlab = "Genes", 
+     main = "P-Value Plot of Empirical Bayes and Student T Test")
+points(1:nrow(merge), col = 'purple', merge[,2], pch = 18)
+points(1:nrow(merge), col = 'orange', merge[,1], pch = 18)
+legend("topright", 1, colnames(merge), col = c("purple", "orange"),
+       pch = 18, cex = 1)
+
+
+
