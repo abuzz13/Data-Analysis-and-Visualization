@@ -1,0 +1,135 @@
+c(4,5,6)
+x <- c(0:10, 50)
+x
+xm <- mean(x)
+x <- c(0:10, 50)
+xm <- mean(x)
+c(xm, mean(x, trim = 0.10))
+ls()
+mean(c(2,5,7))
+median(c(2,5,7))
+quantile(c(3,5,6,8,9),probs=0.25)
+summary(c(3,5,6,8,9))
+max(c(3,5,6,7,8))
+min(c(3,5,6,7,8))
+scale(c(3,5,6,7,8))
+sum(c(3,5,6,7,8))         
+require(stats)
+x <- matrix(1:10, ncol = 2)
+(centered.x <- scale(x, scale = FALSE))
+cov(centered.scaled.x <- scale(x)) # all 1
+x <- c(2,4,6,3,4,6)
+y <- c(5,6,7,8,8,0)
+x[1:3]
+x[-2]
+x
+x.y.bound <- cbind(x,y) 
+x[c(1,3,5)]
+x.y.bound
+
+
+
+x.matrix <- matrix(data = x, nrow = 3, ncol = 2)
+x.matrix
+dim(x.matrix)
+x.matrix(1:2,2)
+x.matrix(1:2, 2)
+x.matrix[1:2,2]
+x.matrix[1,]
+x.matrix[c(1,3),1]
+
+
+x.matrix.g4 <- x.matrix>4
+x.matrix.g4
+x.matrix[x.matrix.g4]
+
+
+
+read.table(file = "C:\\Gene Expression Data Analysis and Visualization JHU 2022\\sle_b_cell.txt", header=T)
+
+
+read.table("Gene Expression Data Analysis and Visualization JHU 2022/sle_b_cell.txt")
+summary(sle_b_cell)
+sle_b_cell <- read_table("Gene Expression Data Analysis and Visualization JHU 2022/sle_b_cell.txt")
+image(sle_b_cell)
+
+dim(sle_b_cell)
+length(sle_b_cell)
+rownames(sle_b_cell)
+colnames(sle_b_cell)
+
+sle_b_cell[12,707]
+as.numeric(as.vector(x.df[12,707,]))
+
+# plotting 211881_x_at by itself by all 26 columns
+y.x.bind <- cbind(sle_b_cell[12707,1:26 ])
+y.x.bind
+y.df <- data.frame(y.x.bind)
+y.df
+colnames(y.df)
+rownames(y.df)
+# Plot x,y of 211881_x_at as a scatter plot
+plot(x,y, type='p', xlab='Indices', ylab='Intensities', main='IGLJ3')
+lines(as.numeric(y.df), col='red',lwd=2,lty=1)
+grid(col='grey')
+
+
+
+# plotting the first sle.1 by control.1
+x.y.bind <- cbind(sle_b_cell[,1,18])
+x.y.bind
+x.df <- data.frame(x.y.bind)
+x.df
+rownames(x.df)
+colnames(x.df)
+# Assign x and y based of column names          
+y <- (sle_b_cell$sle.2)         
+x <- (sle_b_cell$control.1)
+# Make a data frame to see the 2 columns of samples you chose
+x.df <- data.frame(x,y)
+x.df
+# Make our scatter plot(plot (x,y), what type of scatter plot? we want just points (type='p') name our x (xlabs=?) and y (ylab=?) axis, name our graph (main=?)  
+plot(x,y, type = 'p', xlab='Normal', ylab = 'SLE', main = 'SLE B cell sample vs. Normal B cell sample - all probesets')
+# We want the grid background included with grey coloring (col='grey')
+grid(col='grey')
+# color our points! 
+points(x,y,col='pink')
+
+
+x.df20 <- data.frame(x[1:20],y[1:20])
+x.df20
+
+# Make our scatter plot(plot (x,y), what type of scatter plot? we want just points (type='p') name our x (xlabs=?) and y (ylab=?) axis, name our graph (main=?)  
+plot(x.df20, type = 'p', xlab='Normal', ylab = 'SLE', main = 'SLE B cell sample vs. Normal B cell sample - first 20 probesets')
+# We want the grid background included with grey coloring (col='grey')
+grid(col='grey')
+# color our points and turn them into asterics! 
+points(x,y,col='blue', pch='15')
+
+plot(y.df, type='n',range(1:26), xlab='Indices', ylab='Intensites', main='IGLJ3 Plot' )
+grid(col='grey')
+lines(x,y, col='red', lwd=2, lty=2)
+
+
+
+# Example
+boxplot(mpg~cyl,data=mtcars, main="Car Milage Data",
+        xlab="Number of Cylinders", ylab="Miles Per Gallon") 
+
+
+boxplot(as.numeric(y.df), data=y.df, main="Boxplot",
+        xlab = "Indices", ylab = "Intensities", col = 'green', border = 'blue')
+print(head(f))
+
+
+
+
+
+
+
+
+
+
+
+
+
