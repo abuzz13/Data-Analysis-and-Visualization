@@ -1,0 +1,269 @@
+read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\renal_cell_carcinoma.txt", header=T, row.names = 1)
+data <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\renal_cell_carcinoma.txt", header=T, row.names = 1)
+
+# what are the dimensions? 
+dim(data)
+
+# what are the names of the rows and columns? 
+dimnames(data)
+
+# Change the column names to identify which are normal and 
+# which are tumor types.
+colnames(data) <- (c('GSM146778_Normal', 'GSM146780_Normal', 'GSM146782_Normal', 'GSM146784_Normal', 'GSM146786_Normal', 'GSM146789_Normal', 'GSM146790_Normal', 
+                     'GSM146792_Normal', 'GSM146794_Normal', 'GSM146798_Normal', 'GSM146796_Normal', 'GSM146779_Tumor', 'GSM146781_Tumor', 'GSM146783_Tumor', 
+                     'GSM146785_Tumor', 'GSM146787_Tumor', "GSM146788_Tumor", 'GSM146791_Tumor', 'GSM146799_Tumor', 'GSM146793_Tumor', 'GSM146795_Tumor', 'GSM146797_Tumor'))
+
+dimnames(data)
+row.names(data)
+
+# Create a Correlation plot (heat map)
+
+library(gplots)
+data.cor <- cor(data)
+dim(data.cor)
+
+layout(matrix(c(1,1,1,1,1,1,1,1,2,2), 5, 2, byrow = TRUE))
+par(oma=c(5,7,1,1))
+cx <- heat.colors(10)
+leg <- seq(min(data.cor,na.rm=T),max(data.cor,na.rm=T),length=10)
+image(data.cor,main="Pearson's correlation matrix\ Affymetrix microarray experiment",axes=F,col=cx)
+axis(1,at=seq(0,1,length=ncol(data.cor)),label=dimnames(data.cor)[[2]],cex.axis=0.7,las=2)
+axis(2,at=seq(0,1,length=ncol(data.cor)),label=dimnames(data.cor)[[2]],cex.axis=0.7,las=2)
+legend(1.1, 1.1, title = "Correlation", legend = leg,
+       fill = heat.colors(50))
+
+par(mar = rep(2, 4))
+image(as.matrix(leg),col=cx,axes=F)
+tmp <- round(leg,2)
+axis(1,at=seq(0,1,length=length(leg)), labels=tmp,cex.axis=0.9)
+
+legend(x="bottomright", legend=c("min", "ave", "max"), 
+       fill=heat.colors(50))(3)
+
+
+
+# Example from Full stack: https://stackoverflow.com/questions/68810109/adjust-plot-margins-to-show-figure-legend
+# Specify a colour palette (green/red is NOT colourblind friendly)
+cx <- colorRampPalette(viridis::inferno(50))(50)
+
+# Plot the heatmap
+png("Heatmap_cor.matrix.png")
+par(oma=c(0,0,1,0), mar=c(6,6,4,7), par(xpd = TRUE))
+leg <- seq(from = 0.1, to = 1, length.out = 10)
+image(dat.cor, main="Correlation between Glioma vs Non-Tumor\n Gene Expression", col=cx, axes=F)
+axis(1,at=seq(0,1,length=ncol(data.cor)),label=dimnames(data.cor)[[2]], cex.axis=0.9,las=2)
+axis(2,at=seq(0,1,length=ncol(data.cor)),label=dimnames(data.cor)[[2]], cex.axis=0.9,las=2)
+legend(1.1, 1.1, title = "Correlation", legend = leg,
+       fill = colorRampPalette(viridis::inferno(50))(10))
+
+# Found a package that builds the heatmap for you via fullstack
+library(pheatmap)
+pheatmap(mat = data.cor, color = cx, border_color = "white", legend = TRUE,
+         main = "Affymetrix microarray experiment")
+legend(x="bottomright", legend=c("min", "ave", "max"), 
+       fill=wes_palette("FantasticFox1"))(3)
+
+# Create a Hierarchical clustering dendrogram	
+# Now you will use R's scale() function to scale all your column values
+summary(data.cor)
+data_sc <- as.data.frame(scale(data.cor))
+summary(data_sc)
+
+# Notice the mean of all the columns is 0 and the standard deviation is 1. Now 
+# that you have pre-processed your data it's time to build the distance matrix. 
+# Since all the values here are continuous numerical values, you will use the 
+# euclidean distance method.
+dist_matrix <- dist(data_sc, method = "euclidean")
+
+# decide which linkage method you want to use and proceed to do hierarchical clustering.
+# You will build your dendrogram by plotting the hierarchical cluster object which 
+# you will build with hclust(). You can specify the linkage method via the method argument.
+hclust_avg <- hclust(dist_matrix, method = 'complete')
+plot(hclust_avg, cex = 0.6, hang = -1)
+
+# cut the dendrogram in order to create the desired number of clusters.
+cut_avg <- cutree(hclust_avg, k=3)
+
+plot(hclust_avg)
+rect.hclust(hclust_avg, k=2, border=2:6)
+abline(h=4, col='red')
+
+
+library(dendextend)
+avg_dend_obj <- as.dendrogram(hclust_avg)
+avg_col_dend <- color_branches(avg_dend_obj, h=4)
+plot(avg_col_dend, main = 'Dendogram of Affymetrix microarray experiment',
+     ylab = 'Height', hang=-1, cex=0.7)
+legend("topright",rownames(data.cor))
+
+library(dplyr)
+
+data_cl <- mutate(data, cluster = cut_avg)
+count(data_cl, cluster)
+
+# Correlation Plot
+png(filename="myfile.png", res=150, width = 1000, height = 1000)
+layout(matrix(c(1,1,1,1,1,1,1,1,2,2), 5, 2, byrow = TRUE))
+op <- par(oma=c(5,7,1,1))
+par(op)
+cx <- wes_palette("FantasticFox1")
+leg <- seq(min(data.cor,na.rm=T),max(data.cor,na.rm=T),length=10)
+image(data.cor,main="Pearson's correlation",axes=F,col=cx)
+axis(1,at=seq(0,1,length=ncol(data.cor)),label=dimnames(data.cor)[[2]],cex.axis=0.9,las=2)
+axis(2,at=seq(0,1,length=ncol(data.cor)),label=dimnames(data.cor)[[2]],cex.axis=0.9,las=2)
+
+par(mar=c(3, 3, 1, 1), mgp=c(1, 0.5, 0))
+image(as.matrix(leg),col=cx,axes=F)
+tmp <- round(leg,2)
+axis(1,at=seq(0,1,length=length(leg)),labels=tmp,cex.axis=1)
+
+legend(x="bottomright", legend=c("min", "ave", "max"), 
+       fill=wes_palette("FantasticFox1"))(3)
+
+show(wes_palettes)
+
+# CV vs Mean Plot
+
+dat.mean <- apply(log2(data.cor),2,mean) # calculate mean for each sample
+dat.sd <- sqrt(apply(log2(data.cor),2,var)) # calculate st.deviation for each sample
+dat.cv <- dat.sd/dat.mean #calculate cv
+plot(dat.mean,dat.cv,main="Cv vs. Mean Affymetrix microarray experiment",xlab="Mean",
+     ylab="CV",col='blue',cex=1.5,type="n")
+points(dat.mean,dat.cv,bg="lightblue",col=1,pch=21)
+text(dat.mean,dat.cv,label=dimnames(data.cor)[[2]],pos=1,cex=0.5)
+
+
+
+
+# Drop the outlier samples found in the graphs above 'GSM146799_Tumor' and 'GSM146798_Normal'
+
+df = subset(data.cor, select = -c(GSM146799_Tumor,GSM146798_Normal) )
+df
+
+# Import data for Genes kininogen 1 (KNG1) and aquaporin 2 (AQP2)
+
+dim(KNG1)
+row.names(KNG1)
+dimnames(KNG1)
+
+read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\AQP2 Gene.txt", header=T, row.names = 1)
+AQP2 <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\AQP2 Gene.txt", header=T, row.names = 1)
+AQP2
+
+dim(AQP2)
+row.names(AQP2)
+
+vector <- as.vector(KNG1)
+vector
+Vector2 <- as.vector(AQP2)
+
+# Profile Plot of AQP2 
+library(ggplot2)
+library(dplyr)
+par(mfrow=c(2,3))
+plot(Vector2$X206672_at, type='l',lwd=1, col='blue', main="AQP2 Gene Expression",
+     xlab="", ylab="Intensity",axes=F)
+axis(1,at=c(176:ncol(AQP2)),labels=row.names(AQP2),las=2,cex.axis=0.7)
+axis(2)
+
+# Profile Plot of KNG1
+plot(vector$X206054_at, type='l',lwd=1, col='red', main="KNG1: X206054_at Gene Expression",
+     xlab="", ylab="Intensity",axes=F)
+axis(1,at=c(177:ncol(KNG1)),labels=row.names(KNG1),las=2,cex.axis=0.7)
+axis(2)
+
+plot(vector$X217512_at, type='l',lwd=1, col='green', main="KNG1: X217512_at Gene Expression",
+     xlab="", ylab="Intensity",axes=F)
+axis(1,at=c(177:ncol(KNG1)),labels=row.names(KNG1),las=2,cex.axis=0.7)
+axis(2)
+
+# Assign KNG1 X206054_at an NA value for GSM146784_Normal only
+# Original measure for 20605_at was 8385.3
+dat <- data["206054_at",4]
+as.matrix(dat)
+data["206054_at",is.na(data["206054_at",4])] <- dat
+dat
+
+dat.m <- mean(as.numeric(as.matrix(data["206054_at",4])), na.rm=T)
+dat.m
+
+data["206054_at",is.na(data["206054_at",4])] <- dat.m   
+dat.m
+
+
+
+
+
+
+# Now estimate the missing values in the array using 6 nearest neighbors
+# and Euclidean distance with the impute.knn() function.  
+x_num <- as.numeric(unlist(dat))
+impute::impute.knn(data = , k=6, rowmax = 0.5, colmax = 0.8, maxp = 1500, 
+                   rng.seed = 362436069)
+
+
+
+# pca biplot
+biplot(prcomp(t(log2(data.cor[1:10,]))),cex=0.6,main="PCA biplot",
+       col=c("black","grey"),expand=0.8)
+
+
+# k-means cluster profiles
+d.k <- kmeans(log2(data.cor),6)
+par(mfrow=c(2,3))
+for(i in 1:6) {
+  tmp <- data.cor[d.k$cluster==i,]
+  matplot(c(1:ncol(data.cor)),log2(t(tmp)),type='l',col="lightgrey",xlab='',
+          ylab='log2(intensity)',axes=F)
+  me <- as.numeric(apply(log2(tmp),2,mean))
+  lines(c(1:ncol(data.cor)),me,lwd=2,col='pink')
+  axis(1,at=c(1:ncol(data.cor)),dimnames(data.cor)[[2]],las=2,cex.axis=0.6)
+  axis(2)
+  title(main=paste('Cluster',i))
+}
+
+
+# k-means clustering for missing value imputation
+dat <- data.cor[,]				# only use 29 genes for example
+cl <- kmeans(dat.cor[,-1],centers=6, iter.max=20)		# cluster into 5 groups
+# we pretend to be missing a value at sample#1 gene #2
+groups <- cl$cluster			# get cluster membership for each gene
+groups				# look at groups to see where gene 2 is
+group.2 <- groups==2			# since gene 2 is in group 2, get all other members
+genes.cluster <- dimnames(data.cor)[[1]][group.2]
+genes.cluster			# look at all other genes in cluster #2
+
+gene.dist <- dist(data.cor[genes.cluster,-1],method="euclidean")
+gene.dist
+
+
+# random sample of 6 genes
+rand.genes <- sample(dimnames(data)[[1]],6,replace=F)
+
+rand.genes
+
+
+# Gene profile plot Question 13
+plot(c(1,ncol(data)),range(data[rand.genes,]),type='p',
+     main="Profile plot of 6 random genes",xlab="",ylab="Expression",axes=F, 
+     col = 'Green', pch=21)
+axis(side=1,at=c(1:22),labels=dimnames(data)[[2]],cex.axis=0.4,las=2)
+axis(side=2)
+for(i in 1:length(rand.genes)) {
+  dat.y <- as.numeric(data[rand.genes[i],])
+  points(c(1:ncol(data)),dat.y,col=i,lwd=2)
+}
+
+
+# Now impute the missing values using the SVD imputation method.  
+# This is in the pcaMethods package and the function is called pca ()with 
+# method svdImpute and set nPcs=9.To retrive the output matrix, see the help file.
+
+
+pcIr <- pca(data.cor, method = "svdImpute", nPcs = 9, scale = "none", completeObs = TRUE, 
+    center = TRUE,  )
+pcIr
+plot(pcIr)
+slplot(pcIr, sl=as.character(data.cor[,5]))
+
+
