@@ -1,0 +1,101 @@
+read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\lung_cancer_data.txt", 
+           header=T,sep="\t",row.names=1)
+lung <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\lung_cancer_data.txt", 
+                   header=T, sep="\t",row.names=1)
+lung
+summary(lung)
+
+# Load the MASS Library
+library(MASS)
+library(ggstatsplot)
+# create a variable that has the class names for the 3 classes in the data
+# This variable should be of length 24.  
+clas <- colnames(lung)
+clas
+clas <-c(rep("adeno",length(clas[grep("Aden",clas)])), 
+         rep("slcl",length(clas[grep("SCLC",clas)])), 
+         rep("normal",length(clas[grep("Normal",clas)])))
+clas
+# Next, bind the variable that you just created to a transposition of the data matrix using the data.frame() function.
+datx <- data.frame(clas, t(lung))
+datx
+dim(datx)
+# Note: the dimensions of this final data matrix should be 24 x 3014.
+
+
+# Now create 2 separate data matrices from the matrix created in #2 above - a training set and a test set.  
+
+# The training set should include the following number of samples from each class: first 6 adenocarcinomas, first 6 SCLC, and first 3 normals.
+training <- rbind(datx[1:6,], datx[11:16,], datx[22:24,])
+training
+dim(training)
+# The test set should include the remaining samples. 
+test <- rbind(datx[7:10,], datx[17:20,])
+test
+dim(test)
+
+row.names(test)
+# Put the first column of the test matrix that you just created into a new variable, since this will be the actual sample classes.  Then remove the first column from the test set.
+f.c.col <- test$clas
+f.c.col
+drop.test <- subset(test, select = -clas)
+drop.test
+dim(drop.test)
+
+
+# Use the lda() function and train the model using the training set, but ONLY use the first 2 genes.  Predict the test set sample using the predict() function.
+
+# This function only requires 2 arguments - the variable that you saved the model construction in and the test set.  Make sure to only select the first 2 genes (i.e. columns) in the test set, when predicting the sample classes
+
+
+dat.lda <- lda(clas~., training[,1:2]) 
+dat.pred <- predict(dat.lda,test[,1:2])
+table(dat.pred$class, f.c.col)
+
+dat.pred$x
+
+# Now plot the first 2 discriminant functions versus each other in an xy plot. These vectors are saved in the object "x" from your predict() output.  
+
+plot(dat.pred$x,bg=as.numeric(factor(clas)),
+     pch=21,col=4,ylab="Discriminant function",
+     axes=F,xlab="Score",
+     main="Discriminant function for Lung dataset")
+axis(1,at=c(1:3014),names(datx),las=2,cex.axis=0.5)
+axis(2)
+
+points(dat.pred$x,
+       col = c(rep("Pink", 4), rep("Red", 3), rep("Green", 2)), 
+       pch = c(rep(16, 4), rep(17, 3), rep(18, 2)))
+
+legend("bottomright", c("Adeno", "SCLC", "Normal"), 
+       col = c("Pink", "Red", "Green"), pch = c(16:18))
+
+# 6 and 7.) Now repeat #4 and #5 using all of the genes in the matrix as opposed to the first 2.
+
+dat.lda.all <- lda(clas~., training) 
+dat.pred.all <- predict(dat.lda,test)
+table(dat.pred.all$class, f.c.col)
+dat.pred.all$x
+
+
+plot(range(dat.pred.all$x[, 1]), 
+     range(dat.pred.all$x[, 2]),type = "n",
+     pch=21,col=4,ylab="Discriminant function",xlab="Score",
+     main="Discriminant function for Lung dataset")
+
+points(dat.pred.all$x,
+       col = c(rep("Blue", 4), rep("Yellow", 3), rep("Purple", 2)), 
+       pch = c(rep(16, 4), rep(17, 3), rep(18, 2)))
+
+legend("bottomright", c("Adeno", "SCLC", "Normal"), 
+       col = c("Blue", "Yellow", "Purple"), pch = c(16:18))
+
+
+
+
+
+
+
+
+
+
