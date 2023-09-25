@@ -1,0 +1,109 @@
+library(pwr)
+
+# Read in data
+read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\eisen.txt", header=T, na.strings = "NA", blank.lines.skip = F, row.names = 1)
+dat <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\eisen.txt", header=T, na.strings = "NA", blank.lines.skip = F, row.names = 1)
+
+
+# Read in list of classes
+read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\eisenClasses.txt", header = T)
+ann <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\eisenClasses.txt", header = T)
+
+
+# subset data by samples of interest
+dat <- as.data.frame(dat)
+cl <- as.character(ann[, 2])
+dat <- dat[, cl]
+dat
+
+# two classes of DLBCL
+gc <- cl[1:19]
+act <- cl[20:39]
+gc
+act
+
+
+#Pick a gene and plot w/ boxplot
+gene2 <- "180"
+genex <- as.numeric(dat[gene2, gc], na.rm=T)
+geney <- as.numeric(dat[gene2, cl], na.rm=T)
+boxplot(genex, geney, col=c("red", "blue"),main="diffuse large B-cell lymphoma Gene 180 Class 1 and 2")
+axis(2)
+axis(1,at=c(1,2),c("GC","ACT"))
+
+
+
+
+
+# Make a Histogram
+library(ggplot2)
+par(mfrow=c(2,1)) 
+hist(genex, col=rgb(0,0,1,0.2), xlim=c(0, 1),
+     xlab='Values', ylab='Frequency', main='Histogram Gene 180 Class 1')
+hist(geney, col=rgb(1,0,0,0.2),  xlim=c(0, 1),
+     xlab='Values', ylab='Frequency', main='Histogram Gene 180 Class 2')
+
+
+
+x <- as.numeric(dat["180",gc])
+
+y <- as.numeric(dat["180",act])
+
+x
+y
+
+x <- x[!is.na(x)]
+y <- y[!is.na(y)]
+
+# calculate two-sample Welch's t-test (unequal variances) between normal and tumor for gene #8000
+xy.ttest <- t.test(x, y, alternative ="two.sided",paired = FALSE, var.equal = FALSE,conf.level = 0.95)
+xy.ttest
+# size of each group
+nx <- length(x)
+ny <- length(y)
+
+# Calculate the pooled variance
+pool.var <- (((nx-1)*var(x)) + ((ny-1)*var(y)))/(nx+ny-2)
+pool.var
+
+# sample size calculation based on a 1.5-fold difference between means
+dif.1.5fold <- log2(1.5)/sqrt(pool.var)
+pl.ss3 <- pwr.t.test(d=dif.1.5fold,sig.level=.01,power=0.8,type="two.sample")
+pl.ss3
+
+# Get the standard deviation for all samples
+library(matrixStats)
+std <- transform(dat, SD=apply(dat,1, sd, na.rm = TRUE))
+std
+# Code provided by lecture
+library(ssize)
+library(gdata) 
+data(exp.sd) 
+
+hist(exp.sd,n=20, col="cyan", border="blue", main="", xlab="Standard Deviation (for data on the log2 scale)") 
+dens <- density(exp.sd) 
+lines(dens$x, dens$y*par("usr")[4]/max(dens$y),col="red",lwd=2) 
+title("Histogram of Standard Deviations") 
+
+# now plot a gene proportion vs. power curve using the criteria of 6 samples, 
+# effect size=3 (log2 transform for the function), and power=80%.
+n=6; fold.change=3.0; power=0.8; sig.level=0.05; 
+all.power <- pow(sd=exp.sd, n=n, delta=log2(fold.change), sig.level=sig.level) 
+power.plot(all.power, lwd=2, col="blue") 
+xmax <- par("usr")[2]-0.05 
+ymax <- par("usr")[4]-0.05
+legend(x=xmax, y=ymax, legend= strsplit( paste("n=",n,",", "fold change=",fold.change,",",
+                                               "alpha=", sig.level, ",", "# genes=",length(exp.sd), sep=''),
+                                         "," )[[1]], xjust=1, yjust=1, cex=1.0) 
+title("Power to Detect 3-Fold Change")
+
+
+# plot a gene proportion vs. sample size plot using the same criteria AND power=80%
+all.size <- ssize(sd=exp.sd, delta=log2(fold.change), sig.level=sig.level, power=power) 
+ssize.plot(all.size, lwd=2, col="magenta", xlim=c(1,20)) 
+xmax <- par("usr")[2]-1; 
+ymin <- par("usr")[3] + 0.05 
+legend(x=xmax, y=ymin, legend= strsplit( paste("fold change=",fold.change,",", "alpha=", sig.level, ",", "power=",power,",", "# genes=", length(exp.sd), sep=''), "," )[[1]], xjust=1, yjust=0, cex=1.0) 
+title("Sample Size to Detect 3 Fold Change")
+
+
