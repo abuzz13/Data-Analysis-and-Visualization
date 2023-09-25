@@ -1,0 +1,89 @@
+read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\spellman.txt", header=T, row.names = 1)
+dat <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\spellman.txt", header=T, row.names = 1)
+
+dat <- as.data.frame(dat);
+dim(dat)
+
+# Assign the dimensions you would like to see, rows 1-3 and columns 1-3 and compute
+dat[23:46,]
+dat[23:46,23:46]
+cdc15 <- dat[23:45,23:46]
+dat.cor <- cor(cdc15, use = "pairwise.complete.obs")
+print(dat.cor)
+library(gplots)
+
+#Question 5
+# Pearson's correlation matrix
+layout(matrix(c(1,1,1,1,1,1,1,1,2,2), 5, 2, byrow = TRUE))
+par(oma=c(4,6,1,1))
+cx <- rev(colorpanel(25,"purple","black","light green"))
+leg <- seq(min(dat.cor,na.rm=T),max(dat.cor,na.rm=T),length=10)
+image(dat.cor,xlab = "cdc15", ylab = "cdc15",axes=F,col=cx)
+title("Correlation of cdc15 Temperature-Sensitive Mutant", line = 0, adj = .75, col.main = "Dark Blue")
+axis(1,at=seq(0,1,length=ncol(dat.cor)),label=dimnames(dat.cor)[[2]],cex.axis=0.9,las=2)
+axis(2,at=seq(0,1,length=ncol(dat.cor)),label=dimnames(dat.cor)[[2]],cex.axis=0.9,las=2)
+
+# Question 6: Select the gene YAL002W, which is VPS8, a membrane-binding component of the CORVET 
+# complex; involved in endosomal vesicle tethering and fusion in the endosome to vacuole protein 
+# targeting pathway.  Impute the missing values with the row mean (save as something).  Make sure 
+# to cast the gene to numeric.
+
+gene <- "YAL002W"
+genex <- as.numeric(dat[gene,])
+ifelse(is.na(genex), mean(genex, na.rm = TRUE), genex)
+
+
+#Question 7
+
+plot(c(1,ncol(dat)),range(dat[genex,]),type='n',
+     main="Profile plot of VPS8",xlab="Sample",ylab="Expression",axes=F)
+axis(side=1,at=c(1:77),labels=dimnames(dat)[[2]],cex.axis=0.4,las=2)
+axis(side=2)
+lines(c(1:ncol(dat)),genex,lwd=2)
+
+dim(dat.cor)
+dim(genex)
+head(genex)
+
+
+# Question 8
+library(shiny)
+runApp(shinyApp())
+dat <- read.table("C:\\Users\\amand\\Documents\\Gene Expression Data Analysis and Visualization JHU 2022\\spellman.txt", header=T, row.names = 1)
+
+ui <- fluidPage(
+  pageWithSidebar(
+    headerPanel('CDC15'),
+    sidebarPanel(
+      selectInput('xcol','X Variable',dimnames(dat.cor)[[2]]),
+      selectInput('ycol', 'Y variable', dimnames(dat.cor)[[2]]),
+      selectInput('Points', 'Point Color', choices = c("red", "black"))), 
+    
+  mainPanel(plotOutput('plot1'))
+))
+
+server <- function(input, output, session) {
+  selectedData <- reactive({
+    dat[,c(input$xcol, input$ycol)] })
+  output$plot1 <- renderPlot({par(mar = c(5.1, 4.1, 0, 1))
+    plot(selectedData(), col = palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999")), 
+         pch = 10, cex = 3)
+    })
+}
+
+shinyApp(ui, server)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
